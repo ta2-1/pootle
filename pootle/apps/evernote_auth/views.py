@@ -27,8 +27,10 @@ from django.shortcuts import redirect, render
 from django.utils.http import urlquote, urlencode
 from django.utils.translation import ugettext as _
 
+from allauth.account.views import LoginView
+
 from pootle.core.url_helpers import urljoin
-from pootle_profile.views import login, redirect_after_login
+from pootle_profile.views import redirect_after_login
 
 from .backends.evernote import EvernoteBackend
 
@@ -90,9 +92,9 @@ def sso_login(request):
     return redirect(sso_url)
 
 
-def link(request):
+class LinkView(LoginView):
     """Logs the Pootle user in and links the account with Evernote."""
-    return login(request, template_name='auth/link_with_evernote.html')
+    template_name = 'account/link_with_evernote.html'
 
 
 @receiver(auth.user_logged_in)

@@ -20,6 +20,8 @@
 
 from django.conf.urls import patterns, url
 
+from .views import LinkView
+
 
 urlpatterns = patterns('evernote_auth.views',
     url(r'^$',
@@ -27,7 +29,7 @@ urlpatterns = patterns('evernote_auth.views',
         name='en-auth-account-info'),
 
     url(r'^link/?$',
-        'link',
+        LinkView.as_view(),
         name='en-auth-account-link'),
     url(r'^unlink/?$',
         'unlink',
