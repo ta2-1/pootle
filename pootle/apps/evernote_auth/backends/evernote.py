@@ -110,6 +110,8 @@ class EvernoteBackend(object):
                     raise CookieExpired
 
                 return data
+        else:
+            return {'id': 'DEV_EN_ID', 'name': 'DEV_EN_NAME', 'email': 'DEV_EN_EMAIL'}
 
         raise CookieMissing
 

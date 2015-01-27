@@ -24,21 +24,21 @@ from .views import LinkView
 
 
 urlpatterns = patterns('evernote_auth.views',
-    url(r'^$',
-        'account_info',
-        name='en-auth-account-info'),
+    #url(r'^$',
+    #    'account_info',
+    #    name='en-auth-account-info'),
 
-    url(r'^link/?$',
-        LinkView.as_view(),
-        name='en-auth-account-link'),
-    url(r'^unlink/?$',
-        'unlink',
-        name='en-auth-account-unlink'),
+    #url(r'^link/?$',
+    #    LinkView.as_view(),
+    #    name='en-auth-account-link'),
+    #url(r'^unlink/?$',
+    #    'unlink',
+    #    name='en-auth-account-unlink'),
 
-    url(r'^login/?$',
+    url(r'^evernote/login/?$',
         'sso_login',
         name='en-auth-sso-login'),
-    url(r'^return/(?P<redirect_to>.*)/?$',
+    url(r'^evernote/return/(?P<redirect_to>.*)/?$',
         'sso_callback',
         name='en-auth-sso-callback'),
 )

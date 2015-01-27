@@ -1,5 +1,5 @@
 {% extends "layout.html" %}
-{% load i18n assets locale %}
+{% load i18n assets locale socialaccount %}
 
 {% block title %}{% trans "Sign in" %} | {{ block.super }}{% endblock %}
 
@@ -10,6 +10,15 @@
 {% endblock %}
 
 {% block content %}
+
+<ul>
+<li><a href="{% provider_login_url "evernote" next=request.GET.next %}">Evernote</a></li>
+<li><a href="{% provider_login_url "google" next="/" %}">Google</a></li>
+<li><a href="{% provider_login_url "openid" openid="https://www.google.com/accounts/o8/id" next="/" %}">OpenID (Google)</a></li>
+<li><a href="{% provider_login_url "facebook" method="oauth2" %}">Facebook OAuth2</a></li>
+<li><a href="{% provider_login_url "twitter" next="/" %}">Twitter</a></li>
+</ul>
+
 <div id="login" class="form" dir="{% locale_dir %}">
   <h2>{% trans 'Sign in to Pootle' %}</h2>
   <form method="post" action="{% url 'account_login' %}"
