@@ -39,38 +39,6 @@ class Command(PootleCommand):
                  "appear unchanged).",
         )
 
-    def handle_translation_project(self, translation_project, **options):
-        """
-        :return: flag if child stores should be updated
-        """
-        if translation_project.directory_exists_on_disk():
-            translation_project.update_from_disk(
-                force=options['force'], overwrite=options['overwrite'])
-            return False
-
-        # Skip if project directory was ceased to exist on disk.
-        if translation_project.project.directory_exists_on_disk():
-            translation_project.directory.makeobsolete()
-        else:
-            logging.warning(u"Missing project directory for %s. Skipping %s.",
-                            translation_project.project, translation_project)
-
-        return False
-
-    def handle_store(self, store, **options):
-        if not store.file:
-            return
-        disk_mtime = store.get_file_mtime()
-        if not options["force"] and disk_mtime == store.file_mtime:
-            # The file on disk wasn't changed since the last sync
-            logging.debug(u"File didn't change since last sync, "
-                          "skipping %s", store.pootle_path)
-            return
-
-        store.update_from_disk(overwrite=options["overwrite"])
-
     def handle_all(self, **options):
         scan_translation_projects(languages=self.languages,
-                                  projects=self.projects)
-
-        super(Command, self).handle_all(**options)
+                                  projects=self.projects, **options)
