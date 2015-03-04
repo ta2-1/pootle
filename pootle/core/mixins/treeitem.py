@@ -33,8 +33,11 @@ from django.conf import settings
 from django.core.urlresolvers import set_script_prefix
 from django.utils.encoding import force_unicode, iri_to_uri
 
-from django_rq import job
-from django_rq.queues import get_connection
+from django_rq.queues import get_queue, get_connection
+from redis import WatchError
+from rq import get_current_job
+from rq.job import JobStatus
+from rq.utils import utcnow
 
 from pootle.core.cache import get_cache
 from pootle.core.log import log
@@ -278,6 +281,10 @@ class CachedTreeItem(TreeItem):
         key = iri_to_uri(self.get_cachekey() + ":" + name)
         return cache.get(key)
 
+    def get_rq_key(self):
+        key = self.get_cachekey()
+        return "pootle:stats:lastjob:%s" % key.replace("/", ".").strip(".")
+
     @statslog
     def update_cached(self, name):
         """calculate stat value and update cached value"""
@@ -427,12 +434,12 @@ class CachedTreeItem(TreeItem):
         for p in self.all_pootle_paths():
             r_con.zincrby(POOTLE_DIRTY_TREEITEMS, p, -1)
 
-    def unregister_dirty(self):
+    def unregister_dirty(self, decrement=1):
         """Unregister current TreeItem as dirty
         (should be called from RQ job procedure after cache is updated)
         """
         r_con = get_connection()
-        r_con.zincrby(POOTLE_DIRTY_TREEITEMS, self.get_cachekey(), -1)
+        r_con.zincrby(POOTLE_DIRTY_TREEITEMS, self.get_cachekey(), 0 - decrement)
 
     def get_dirty_score(self):
         r_con = get_connection()
@@ -446,7 +453,7 @@ class CachedTreeItem(TreeItem):
         if _dirty:
             self._dirty_cache = set()
             self.register_all_dirty()
-            update_cache.delay(self, _dirty)
+            create_update_cache_job(self, _dirty)
 
     def update_all_cache(self):
         """Add a RQ job which updates all cached stats of current TreeItem
@@ -455,7 +462,7 @@ class CachedTreeItem(TreeItem):
         self.mark_all_dirty()
         self.update_dirty_cache()
 
-    def _update_cache(self, keys):
+    def _update_cache(self, keys, decrement):
         """Update dirty cached stats of current TreeItem"""
         if self.can_be_updated():
             # children should be recalculated to avoid using of obsolete directories
@@ -465,9 +472,9 @@ class CachedTreeItem(TreeItem):
             for key in keys:
                 self.update_cached(key)
             for p in self.get_parents():
-                p._update_cache(keys)
+                create_update_cache_job(p, keys, decrement)
 
-            self.unregister_dirty()
+            self.unregister_dirty(decrement)
         else:
             logger.warning('Cache for %s object cannot be updated.' % self)
             self.unregister_all_dirty()
@@ -477,7 +484,7 @@ class CachedTreeItem(TreeItem):
         all_cache_methods = CachedMethods.get_all()
         for p in self.get_parents():
             p.register_all_dirty()
-            update_cache.delay(p, all_cache_methods)
+            create_update_cache_job(p, all_cache_methods)
 
     def init_cache(self):
         """Set initial values for all cached method for the current TreeItem"""
@@ -486,8 +493,7 @@ class CachedTreeItem(TreeItem):
             self.set_cached_value(method_name, method())
 
 
-@job
-def update_cache(instance, keys):
+def update_cache(instance, keys, decrement):
     """RQ job"""
     # The script prefix needs to be set here because the generated
     # URLs need to be aware of that and they are cached. Ideally
@@ -496,4 +502,75 @@ def update_cache(instance, keys):
     script_name = (u'/' if settings.FORCE_SCRIPT_NAME is None
                         else force_unicode(settings.FORCE_SCRIPT_NAME))
     set_script_prefix(script_name)
-    instance._update_cache(keys)
+    job = get_current_job()
+    decrement = job.args[2]
+    instance._update_cache(keys, decrement)
+
+
+def create_update_cache_job(instance, keys, decrement=1):
+    queue = get_queue('default')
+    args = (instance, keys, decrement)
+    job = queue.job_class.create(update_cache, args, connection=queue.connection)
+    rq_key = instance.get_rq_key()
+
+    def do_enqueue_job(queue, job, pipe):
+        queue.connection.sadd(queue.redis_queues_keys, queue.key)
+        job.set_status(JobStatus.QUEUED, pipeline=pipe)
+        job.origin = queue.name
+        job.enqueued_at = utcnow()
+        if job.timeout is None:
+            job.timeout = queue.DEFAULT_TIMEOUT
+        job.save(pipeline=pipe)
+
+    with queue.connection.pipeline() as pipe:
+        while True:
+            try:
+                pipe.watch(rq_key)
+                last_job_id = queue.connection.get(rq_key)
+                depends_on = None
+                if last_job_id is not None:
+                    pipe.watch(queue.job_class.key_for(last_job_id))
+                    depends_on = queue.fetch_job(last_job_id)
+
+                pipe.multi()
+
+                if depends_on is None:
+                    # enqueue without dependencies
+                    pipe.set(rq_key, job.id)
+                    do_enqueue_job(queue, job, pipe)
+                    pipe.execute()
+                    break
+
+                depends_on_status = depends_on.get_status()
+                if depends_on_status in [JobStatus.QUEUED,
+                                         JobStatus.DEFERRED]:
+                    depends_on.args = (depends_on.args[0],
+                                       depends_on.args[1] | keys,
+                                       depends_on.args[2] + decrement)
+                    depends_on.description = depends_on.get_call_string()
+                    depends_on.save(pipeline=pipe)
+                    pipe.execute()
+                    # skip this job
+                    return None
+
+                pipe.set(rq_key, job.id)
+
+                if depends_on_status not in [JobStatus.FINISHED]:
+                    # add job as a dependent
+                    # HACKISH: this relies on modifying an RQ Job's internal attribute,
+                    # handle with care, and especially double-check if the attribute
+                    # is always present in newer versions of RQ
+                    job._dependency_id = last_job_id
+                    job.set_status(JobStatus.DEFERRED)
+                    job.register_dependency(pipeline=pipe)
+                    job.save(pipeline=pipe)
+                    pipe.execute()
+                    return job
+
+                do_enqueue_job(queue, job, pipe)
+                pipe.execute()
+                break
+            except WatchError:
+                continue
+
+    queue.push_job_id(job.id)
