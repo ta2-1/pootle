@@ -431,6 +431,7 @@ class CachedTreeItem(TreeItem):
         (should be called from RQ job procedure after cache is updated)
         """
         r_con = get_connection()
+        logger.debug('UNREGISTER ALL for %s' % self.get_cachekey())
         for p in self.all_pootle_paths():
             r_con.zincrby(POOTLE_DIRTY_TREEITEMS, p, 0 - decrement)
 
@@ -439,6 +440,9 @@ class CachedTreeItem(TreeItem):
         (should be called from RQ job procedure after cache is updated)
         """
         r_con = get_connection()
+        job = get_current_job()
+        logger.debug('UNREGISTER %s (-%s) where job_id=%s' %
+                     (self.get_cachekey(), decrement, job.id))
         r_con.zincrby(POOTLE_DIRTY_TREEITEMS, self.get_cachekey(), 0 - decrement)
 
     def get_dirty_score(self):
@@ -553,6 +557,10 @@ def create_update_cache_job(instance, keys, decrement=1):
                     depends_on.description = depends_on.get_call_string()
                     depends_on.save(pipeline=pipe)
                     pipe.execute()
+                    msg = 'SKIP %s (decrement=%s, job_status=%s, job_id=%s)'
+                    msg = msg % (rq_key, decrement + depends_on.args[2],
+                                 depends_on_status, last_job_id)
+                    logger.debug(msg)
                     # skip this job
                     return None
 
@@ -568,12 +576,14 @@ def create_update_cache_job(instance, keys, decrement=1):
                     job.register_dependency(pipeline=pipe)
                     job.save(pipeline=pipe)
                     pipe.execute()
+                    logger.debug('ADD AS DEPENDENT for %s' % rq_key)
                     return job
 
                 do_enqueue_job(queue, job, pipe)
                 pipe.execute()
                 break
             except WatchError:
+                logger.debug('RETRY after WatchError for %s' % rq_key)
                 continue
-
+    logger.debug('ENQUEUE %s' % rq_key)
     queue.push_job_id(job.id)
