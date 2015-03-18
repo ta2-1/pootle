@@ -426,13 +426,13 @@ class CachedTreeItem(TreeItem):
         for p in self.all_pootle_paths():
             r_con.zincrby(POOTLE_DIRTY_TREEITEMS, p)
 
-    def unregister_all_dirty(self):
+    def unregister_all_dirty(self, decrement=1):
         """Unregister current TreeItem and all parent paths as dirty
         (should be called from RQ job procedure after cache is updated)
         """
         r_con = get_connection()
         for p in self.all_pootle_paths():
-            r_con.zincrby(POOTLE_DIRTY_TREEITEMS, p, -1)
+            r_con.zincrby(POOTLE_DIRTY_TREEITEMS, p, 0 - decrement)
 
     def unregister_dirty(self, decrement=1):
         """Unregister current TreeItem as dirty
@@ -462,8 +462,9 @@ class CachedTreeItem(TreeItem):
         self.mark_all_dirty()
         self.update_dirty_cache()
 
-    def _update_cache(self, keys, decrement):
-        """Update dirty cached stats of current TreeItem"""
+    def _update_cache_job(self, keys, decrement):
+        """Update dirty cached stats of current TreeItem and add RQ job for updating
+        dirty cached stats of parent"""
         if self.can_be_updated():
             # children should be recalculated to avoid using of obsolete directories
             # or stores which could be saved in `children` property
@@ -480,7 +481,9 @@ class CachedTreeItem(TreeItem):
             self.unregister_all_dirty()
 
     def update_parent_cache(self):
-        """Update dirty cached stats for a all parents of the current TreeItem"""
+        """Add a RQ job which updates all cached stats of parent TreeItem
+        to the default queue
+        """
         all_cache_methods = CachedMethods.get_all()
         for p in self.get_parents():
             p.register_all_dirty()
@@ -493,7 +496,7 @@ class CachedTreeItem(TreeItem):
             self.set_cached_value(method_name, method())
 
 
-def update_cache(instance, keys, decrement):
+def update_cache_job(instance, keys, decrement):
     """RQ job"""
     # The script prefix needs to be set here because the generated
     # URLs need to be aware of that and they are cached. Ideally
@@ -504,13 +507,13 @@ def update_cache(instance, keys, decrement):
     set_script_prefix(script_name)
     job = get_current_job()
     decrement = job.args[2]
-    instance._update_cache(keys, decrement)
+    instance._update_cache_job(keys, decrement)
 
 
 def create_update_cache_job(instance, keys, decrement=1):
     queue = get_queue('default')
     args = (instance, keys, decrement)
-    job = queue.job_class.create(update_cache, args, connection=queue.connection)
+    job = queue.job_class.create(update_cache_job, args, connection=queue.connection)
     rq_key = instance.get_rq_key()
 
     def do_enqueue_job(queue, job, pipe):
