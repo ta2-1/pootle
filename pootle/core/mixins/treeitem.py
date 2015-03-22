@@ -510,8 +510,10 @@ class CachedTreeItem(TreeItem):
         (should be called from RQ job procedure after cache is updated)
         """
         r_con = get_connection()
-        logger.debug('UNREGISTER ALL for %s' % self.get_cachekey())
+        job = get_current_job()
         for p in self.all_pootle_paths():
+            logger.debug('UNREGISTER %s (-%s) where job_id=%s' %
+                         (p, decrement, job.id))
             r_con.zincrby(POOTLE_DIRTY_TREEITEMS, p, 0 - decrement)
 
     def unregister_dirty(self, decrement=1):
@@ -570,7 +572,7 @@ class CachedTreeItem(TreeItem):
 
         else:
             logger.warning('Cache for %s object cannot be updated.' % self)
-            self.unregister_all_dirty()
+            self.unregister_all_dirty(decrement)
 
     def update_parent_cache(self):
         """Add a RQ job which updates all cached stats of parent TreeItem
@@ -582,7 +584,23 @@ class CachedTreeItem(TreeItem):
             create_update_cache_job(p, all_cache_methods)
 
 
-def update_cache_job(instance, keys, decrement):
+def get_job_decrement(job):
+    key = job.key
+    connection = job.connection
+    decrement = connection.hget(key, 'decrement')
+    if decrement is not None:
+        return int(decrement)
+
+    return None
+
+
+def set_job_decrement(job, value, pipeline=None):
+    key = job.key
+    connection = pipeline if pipeline is not None else job.connection
+    connection.hset(key, 'decrement', value)
+
+
+def update_cache_job(instance, keys):
     """RQ job"""
     # The script prefix needs to be set here because the generated
     # URLs need to be aware of that and they are cached. Ideally
@@ -592,19 +610,21 @@ def update_cache_job(instance, keys, decrement):
                         else force_unicode(settings.FORCE_SCRIPT_NAME))
     set_script_prefix(script_name)
     job = get_current_job()
-    decrement = job.args[2]
+    decrement = get_job_decrement(job)
     instance._update_cache_job(keys, decrement)
 
 
 def create_update_cache_job(instance, keys, decrement=1):
     queue = get_queue('default')
-    args = (instance, keys, decrement)
-    job = queue.job_class.create(update_cache_job, args, connection=queue.connection)
+    args = (instance, keys)
+    job = queue.job_class.create(update_cache_job, args=args,
+                                 connection=queue.connection)
     rq_key = instance.get_rq_key()
 
     def do_enqueue_job(queue, job, pipe):
         queue.connection.sadd(queue.redis_queues_keys, queue.key)
         job.set_status(JobStatus.QUEUED, pipeline=pipe)
+        set_job_decrement(job, decrement, pipeline=pipe)
         job.origin = queue.name
         job.enqueued_at = utcnow()
         if job.timeout is None:
@@ -633,14 +653,12 @@ def create_update_cache_job(instance, keys, decrement=1):
                 depends_on_status = depends_on.get_status()
                 if depends_on_status in [JobStatus.QUEUED,
                                          JobStatus.DEFERRED]:
-                    depends_on.args = (depends_on.args[0],
-                                       depends_on.args[1] | keys,
-                                       depends_on.args[2] + decrement)
-                    depends_on.description = depends_on.get_call_string()
-                    depends_on.save(pipeline=pipe)
+                    old_decrement = get_job_decrement(depends_on)
+                    new_decrement = old_decrement + decrement
+                    set_job_decrement(depends_on, new_decrement, pipeline=pipe)
                     pipe.execute()
                     msg = 'SKIP %s (decrement=%s, job_status=%s, job_id=%s)'
-                    msg = msg % (rq_key, decrement + depends_on.args[2],
+                    msg = msg % (rq_key, new_decrement,
                                  depends_on_status, last_job_id)
                     logger.debug(msg)
                     # skip this job
@@ -655,10 +673,12 @@ def create_update_cache_job(instance, keys, decrement=1):
                     # is always present in newer versions of RQ
                     job._dependency_id = last_job_id
                     job.set_status(JobStatus.DEFERRED)
+                    set_job_decrement(job, decrement, pipeline=pipe)
                     job.register_dependency(pipeline=pipe)
                     job.save(pipeline=pipe)
                     pipe.execute()
-                    logger.debug('ADD AS DEPENDENT for %s' % rq_key)
+                    logger.debug('ADD AS DEPENDENT for %s (job_id=%s) OF %s' %
+                                 (rq_key, job.id, last_job_id))
                     return job
 
                 do_enqueue_job(queue, job, pipe)
@@ -667,5 +687,5 @@ def create_update_cache_job(instance, keys, decrement=1):
             except WatchError:
                 logger.debug('RETRY after WatchError for %s' % rq_key)
                 continue
-    logger.debug('ENQUEUE %s' % rq_key)
+    logger.debug('ENQUEUE %s (job_id=%s)' % (rq_key, job.id))
     queue.push_job_id(job.id)
