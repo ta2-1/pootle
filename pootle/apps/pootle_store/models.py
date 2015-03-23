@@ -2087,10 +2087,6 @@ class Store(models.Model, CachedTreeItem, base.TranslationStore):
         """Check if any unit in the store has suggestions"""
         return CachedTreeItem._get_suggestion_count()
 
-    def refresh_stats(self, include_children=True, cached_methods=None):
-        """This TreeItem method is used on directories, translation projects,
-        languages and projects. For stores do nothing"""
-        return
 
     ### /TreeItem
 

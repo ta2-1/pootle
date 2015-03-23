@@ -125,7 +125,6 @@ class Command(PootleCommand):
             try:
                 self.register_refresh_stats('/')
 
-                self.process(**options)
                 logger.info('Refreshing directories stats...')
 
                 prj_query = Project.objects.all()
