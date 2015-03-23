@@ -2061,89 +2061,31 @@ class Store(models.Model, CachedTreeItem, base.TranslationStore):
 
     def _get_total_wordcount(self):
         """calculate total wordcount statistics"""
-        return calc_total_wordcount(self.units)
+        return CachedTreeItem._get_total_wordcount()
 
     def _get_translated_wordcount(self):
         """calculate translated units statistics"""
-        return calc_translated_wordcount(self.units)
+        return CachedTreeItem._get_translated_wordcount()
 
     def _get_fuzzy_wordcount(self):
         """calculate untranslated units statistics"""
-        return calc_fuzzy_wordcount(self.units)
+        return CachedTreeItem._get_fuzzy_wordcount()
 
     def _get_checks(self):
-        try:
-            queryset = QualityCheck.objects.filter(unit__store=self,
-                                                   unit__state__gt=UNTRANSLATED,
-                                                   false_positive=False)
-
-            queryset = queryset.values('unit', 'name', 'category') \
-                               .order_by('unit', '-category')
-
-            saved_unit = None
-            result = {
-                'unit_critical_error_count': 0,
-                'checks': {},
-            }
-            for item in queryset:
-                if item['unit'] != saved_unit or saved_unit is None:
-                    saved_unit = item['unit']
-                    if item['category'] == Category.CRITICAL:
-                        result['unit_critical_error_count'] += 1
-                if item['name'] in result['checks']:
-                    result['checks'][item['name']] += 1
-                else:
-                    result['checks'][item['name']] = 1
-
-            return result
-        except Exception as e:
-            logging.info(u"Error getting quality checks for %s\n%s",
-                         self.name, e)
-            return {}
+        return CachedTreeItem._get_checks()
 
     def _get_mtime(self):
-        return max_column(self.unit_set.all(), 'mtime', datetime_min)
+        return CachedTreeItem._get_mtime()
 
     def _get_last_updated(self):
-        try:
-            max_unit = self.unit_set.all().order_by('-creation_time')[0]
-        except IndexError:
-            max_unit = None
-
-        # creation_time field has been added recently, so it can have NULL value
-        if max_unit is not None:
-            max_time = max_unit.creation_time
-            if max_time:
-                return {
-                    'id': max_unit.id,
-                    'creation_time': int(dateformat.format(max_time, 'U')),
-                    'snippet': max_unit.get_last_updated_message()
-                }
-
-        return {'id': 0, 'creation_time': 0, 'snippet': ''}
+        return CachedTreeItem._get_last_updated()
 
     def _get_last_action(self, submission=None):
-        if submission is None:
-            try:
-                sub = Submission.simple_objects.filter(store=self) \
-                                .exclude(type=SubmissionTypes.UNIT_CREATE) \
-                                .latest()
-            except Submission.DoesNotExist:
-                return {'id': 0, 'mtime': 0, 'snippet': ''}
-        else:
-            sub = submission
-
-        return {
-            'id': sub.unit.id,
-            'mtime': int(dateformat.format(sub.creation_time, 'U')),
-            'snippet': sub.get_submission_message()
-        }
+        return CachedTreeItem._get_last_action()
 
     def _get_suggestion_count(self):
         """Check if any unit in the store has suggestions"""
-        return Suggestion.objects.filter(unit__store=self,
-                                         unit__state__gt=OBSOLETE,
-                                         state=SuggestionStates.PENDING).count()
+        return CachedTreeItem._get_suggestion_count()
 
     def refresh_stats(self, include_children=True, cached_methods=None):
         """This TreeItem method is used on directories, translation projects,
