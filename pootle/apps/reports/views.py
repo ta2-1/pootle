@@ -15,6 +15,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ImproperlyConfigured
 from django.core.urlresolvers import reverse
+from django.http import HttpResponseBadRequest
 from django.shortcuts import render_to_response
 from django.template import RequestContext
 from django.utils import timezone
@@ -80,6 +81,15 @@ class UserStatsView(NoDefaultUserMixin, DetailView):
         return ctx
 
 
+def is_valid_month(month):
+    try:
+        datetime.strptime(month, '%Y-%m')
+    except ValueError:
+        return False
+
+    return True
+
+
 class UserActivityView(NoDefaultUserMixin, SingleObjectMixin, View):
     model = get_user_model()
     slug_field = 'username'
@@ -87,8 +97,13 @@ class UserActivityView(NoDefaultUserMixin, SingleObjectMixin, View):
 
     @method_decorator(ajax_required)
     def dispatch(self, request, *args, **kwargs):
-        self.month = request.GET.get('month', None)
+        month = request.GET.get('month', None)
+        if month is not None and is_valid_month(month):
+            return JsonResponseBadRequest({'error': _('Invalid month value')})
+
+        self.month = month
         return super(UserActivityView, self).dispatch(request, *args, **kwargs)
+
 
     def get(self, *args, **kwargs):
         data = get_activity_data(self.request, self.get_object(), self.month)
@@ -102,8 +117,12 @@ class UserDetailedStatsView(NoDefaultUserMixin, DetailView):
     template_name = 'user/detailed_stats.html'
 
     def dispatch(self, request, *args, **kwargs):
-        self.month = request.GET.get('month', None)
+        month = request.GET.get('month', None)
+        if month is not None and is_valid_month(month):
+            return HttpResponseBadRequest()
+
         self.user = request.user
+        self.month = month
         return super(UserDetailedStatsView, self).dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
@@ -263,11 +282,13 @@ def get_detailed_report_context(user, month):
 
 @admin_required
 def reports_detailed(request):
-    username = request.GET.get('username', None)
     month = request.GET.get('month', None)
-    User = get_user_model()
+    if month is not None and is_valid_month(month):
+        return HttpResponseBadRequest()
 
+    username = request.GET.get('username', None)
     try:
+        User = get_user_model()
         user = User.objects.get(username=username)
     except User.DoesNotExist:
         user = ''
@@ -429,9 +450,11 @@ def get_activity_data(request, user, month):
 @ajax_required
 @admin_required
 def user_date_prj_activity(request):
-    username = request.GET.get('username', None)
     month = request.GET.get('month', None)
+    if month is not None and is_valid_month(month):
+        return JsonResponseBadRequest({'error': _('Invalid month value')})
 
+    username = request.GET.get('username', None)
     try:
         User = get_user_model()
         user = User.objects.get(username=username)
