@@ -9,6 +9,7 @@
 'use strict';
 
 var $ = require('jquery');
+var _ = require('underscore');
 
 require('jquery-bidi');
 require('jquery-easing');
@@ -46,6 +47,11 @@ var stats = {
     this.retries = 0;
     this.pootlePath = options.pootlePath;
     this.isAdmin = options.isAdmin;
+    this.tmpl = {
+      lastAction: _.template($('#last_action').html()),
+      lastUpdated: _.template($('#last_updated').html()),
+    };
+
     this.processLoadedData(options.data, undefined, true);
 
     $('td.stats-name').filter(':not([dir])').bidi();
@@ -113,18 +119,22 @@ var stats = {
     }
   },
 
+  getLastActionSnippet: function (data) {
+    return this.tmpl.lastAction(data);
+  },
+
+  getLastUpdatedSnippet: function (data) {
+    return this.tmpl.lastUpdated(data);
+  },
+
   updateLastUpdates: function (stats) {
     if (stats.lastupdated) {
-      $('#js-last-updated').toggle(stats.lastupdated.snippet !== '');
-      if (stats.lastupdated.snippet) {
-        $('#js-last-updated .last-updated').html(stats.lastupdated.snippet);
-      }
+      $('#js-last-updated').show();
+      $('#js-last-updated .last-updated').html(this.getLastUpdatedSnippet(stats.lastupdated));
     }
     if (stats.lastaction) {
-      $('#js-last-action').toggle(stats.lastaction.snippet !== '');
-      if (stats.lastaction.snippet) {
-        $('#js-last-action .last-action').html(stats.lastaction.snippet);
-      }
+      $('#js-last-action').show();
+      $('#js-last-action .last-action').html(this.getLastActionSnippet(stats.lastaction));
     }
   },
 
@@ -150,7 +160,7 @@ var stats = {
     if (item.lastaction) {
       $td = $table.find('#last-activity-' + code);
       $td.removeClass('not-inited');
-      $td.html(item.lastaction.snippet);
+      $td.html(this.getLastActionSnippet(item.lastaction));
       $td.attr('sorttable_customkey', now - item.lastaction.mtime);
     }
 
@@ -160,7 +170,7 @@ var stats = {
     if (item.lastupdated) {
       $td = $table.find('#last-updated-' + code);
       $td.removeClass('not-inited');
-      $td.html(item.lastupdated.snippet);
+      $td.html(this.getLastUpdatedSnippet(item.lastupdated));
       $td.attr('sorttable_customkey', now - item.lastupdated.creation_time);
     }
   },
