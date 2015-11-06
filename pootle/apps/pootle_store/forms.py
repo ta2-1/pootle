@@ -8,8 +8,6 @@
 
 """Form fields required for handling translation files."""
 
-import re
-
 from translate.misc.multistring import multistring
 
 from django import forms
@@ -65,45 +63,6 @@ UNIT_SEARCH_SORT_CHOICES = (
 
 # # # # # # #  text cleanup and highlighting # # # # # # # # # # # # #
 
-FORM_RE = re.compile('\r\n|\r|\n|\t|\\\\')
-
-
-def highlight_whitespace(text):
-    """Make whitespace chars visible."""
-
-    def replace(match):
-        submap = {
-            '\r\n': '\\r\\n\n',
-            '\r': '\\r\n',
-            '\n': '\\n\n',
-            '\t': '\\t',
-            '\\': '\\\\',
-        }
-        return submap[match.group()]
-
-    return FORM_RE.sub(replace, text)
-
-
-FORM_UNRE = re.compile('\r|\n|\t|\\\\r|\\\\n|\\\\t|\\\\\\\\')
-
-
-def unhighlight_whitespace(text):
-    """Replace visible whitespace with proper whitespace."""
-
-    def replace(match):
-        submap = {
-            '\t': '',
-            '\n': '',
-            '\r': '',
-            '\\t': '\t',
-            '\\n': '\n',
-            '\\r': '\r',
-            '\\\\': '\\',
-        }
-        return submap[match.group()]
-
-    return FORM_UNRE.sub(replace, text)
-
 
 class MultiStringWidget(forms.MultiWidget):
     """Custom Widget for editing multistrings, expands number of text
@@ -137,13 +96,13 @@ class MultiStringWidget(forms.MultiWidget):
         if value is None:
             return [None] * len(self.widgets)
         elif isinstance(value, multistring):
-            return [highlight_whitespace(string) for string in value.strings]
+            return [string for string in value.strings]
         elif isinstance(value, list):
-            return [highlight_whitespace(string) for string in value]
+            return value
         elif isinstance(value, basestring):
-            return [highlight_whitespace(value)]
-        else:
-            raise ValueError
+            return [value]
+
+        raise ValueError
 
 
 class HiddenMultiStringWidget(MultiStringWidget):
@@ -178,7 +137,7 @@ class MultiStringFormField(forms.MultiValueField):
                                                    *args, **kwargs)
 
     def compress(self, data_list):
-        return [unhighlight_whitespace(string) for string in data_list]
+        return data_list
 
 
 class UnitStateField(forms.BooleanField):
