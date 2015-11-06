@@ -39,9 +39,7 @@ from pootle_statistics.models import (Submission, SubmissionFields,
                                       SubmissionTypes)
 
 from .decorators import get_unit_context
-from .forms import (
-    highlight_whitespace, unit_comment_form_factory,
-    unit_form_factory, UnitSearchForm)
+from .forms import unit_comment_form_factory, unit_form_factory, UnitSearchForm
 from .models import Unit
 from .templatetags.store_tags import (highlight_diffs, pluralize_source,
                                       pluralize_target)
@@ -703,8 +701,7 @@ def accept_suggestion(request, unit, suggid):
             comment_form.save()
 
     json['user_score'] = request.user.public_score
-    json['newtargets'] = [highlight_whitespace(target)
-                          for target in unit.target.strings]
+    json['newtargets'] = [target for target in unit.target.strings]
     json['newdiffs'] = {}
     for sugg in unit.get_suggestions():
         json['newdiffs'][sugg.id] = [highlight_diffs(unit.target.strings[i],
