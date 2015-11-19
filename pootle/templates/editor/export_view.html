@@ -1,4 +1,4 @@
-{% load assets cleanhtml i18n locale store_tags %}
+{% load assets i18n locale store_tags %}
 <!DOCTYPE html>
 <html lang="{{ LANGUAGE_CODE }}" dir="{% locale_dir %}">
 <head>
@@ -115,10 +115,8 @@
       <tr{% if unit.isfuzzy %} class="unit-fuzzy"{% endif %}>
         <td>
         {% for i, source, title in unit|pluralize_source %}
-          <div lang="{{ source_language.code }}"
-            dir="{{ source_language.direction }}">
-            {{ source|fancy_highlight }}
-          </div>
+          <div lang="{{ source_language.code }}" dir="{{ source_language.direction }}"
+            class="js-translation-text">{{ source }}</div>
         {% endfor %}
         {% if unit.getcontext %}
         <div class="unit-context">
@@ -128,9 +126,8 @@
         </td>
         <td>
         {% for i, target, title in unit|pluralize_target %}
-          <div dir="{{ language.direction }}" lang="{{ language.code }}">
-            {{ target|fancy_highlight }}
-          </div>
+          <div dir="{{ language.direction }}" lang="{{ language.code }}"
+            class="js-translation-text">{{ target }}</div>
         {% endfor %}
         <div class="unit-number">
           <a href="{{ unit.get_translate_url }}">#{{ unit.id }}</a>
@@ -156,5 +153,26 @@
     {% endif %}
     </tbody>
   </table>
+  {# XXX: All this is needed in order to include the common bundle #}
+  <script type="text/javascript">
+  window.PTL = window.PTL || {};
+  PTL.settings = {
+    CONTACT_ENABLED: {{ settings.POOTLE_CONTACT_ENABLED|yesno:'true, false' }},
+    SIGNUP_ENABLED: {{ settings.POOTLE_SIGNUP_ENABLED|yesno:'true, false' }},
+    MARKUP_FILTER: '{{ settings.POOTLE_MARKUP_FILTER }}',
+    SOCIAL_AUTH_PROVIDERS: {{ SOCIAL_AUTH_PROVIDERS|safe }},
+  };
+  </script>
+  {% assets "js_vendor" %}
+  <script type="text/javascript" src="{{ ASSET_URL }}"></script>
+  {% endassets %}
+  {% assets "js_common" %}
+  <script type="text/javascript" src="{{ ASSET_URL }}"></script>
+  {% endassets %}
+  <script type="text/javascript">
+    $(function () {
+      PTL.utils.fancyHlNodes('.js-translation-text');
+    });
+  </script>
 </body>
 </html>
