@@ -42,19 +42,8 @@ class LanguageMixin(object):
         return {"language_code": self.object.code}
 
     def get_object(self):
-        lang = None
-        try:
-            lang = Language.objects.get(code__iexact=self.kwargs["language_code"])
-        except:
-            if "-" in self.kwargs["language_code"]:
-                lang = get_object_or_404(
-                    Language,
-                    code__iexact=self.kwargs["language_code"].replace("-", "_"))
-            elif "-" in self.kwargs["language_code"]:
-                lang = get_object_or_404(
-                    Language,
-                    code__iexact=self.kwargs["language_code"].replace("_", "-"))
-        if not lang:
+        lang = Language.get_canonical(self.kwargs["language_code"])
+        if lang is None:
             raise Http404
         return lang
 

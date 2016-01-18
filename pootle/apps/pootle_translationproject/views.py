@@ -30,6 +30,7 @@ from pootle_app.models import Directory
 from pootle_app.models.permissions import (
     check_permission, get_matching_permissions)
 from pootle_app.views.admin.permissions import admin_permissions as admin_perms
+from pootle_language.models import Language
 from pootle_store.models import Store
 from virtualfolder.helpers import (
     extract_vfolder_from_path, make_vfolder_treeitem_dict)
@@ -64,11 +65,27 @@ def redirect_to_tp_on_404(f):
                 request.profile,
                 self.permission_context) or []
         except Http404 as e:
-            if (kwargs["dir_path"] or kwargs.get("filename", None)):
+            lang = Language.get_canonical(kwargs['language_code'])
+            if lang is not None and lang.code != kwargs['language_code']:
+                kwargs["language_code"] = lang.code
+                if kwargs.get("filename", None) is None:
+                    return redirect(
+                        reverse(
+                            'pootle-tp-browse',
+                            kwargs=kwargs))
+                else:
+                    return redirect(
+                        reverse(
+                            'pootle-tp-store-browse',
+                            kwargs=kwargs))
+
+            elif kwargs["dir_path"] or kwargs.get("filename", None):
                 try:
-                    TranslationProject.objects.get(
-                        project__code=kwargs["project_code"],
-                        language__code__iexact=kwargs["language_code"])
+                    tp = TranslationProject.objects \
+                        .select_related('language').get(
+                            project__code=kwargs["project_code"],
+                            language__code=kwargs["language_code"]
+                        )
                     # the TP exists so redirect to it
                     return redirect(
                         reverse(
