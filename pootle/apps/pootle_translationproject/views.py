@@ -11,7 +11,7 @@ import functools
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.core.urlresolvers import reverse
+from django.core.urlresolvers import resolve, reverse
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect
 from django.utils.functional import cached_property
@@ -65,23 +65,15 @@ def redirect_to_tp_on_404(f):
                 request.profile,
                 self.permission_context) or []
         except Http404 as e:
+            # Test if lang code is not canonical but valid
             lang = Language.get_canonical(kwargs['language_code'])
             if lang is not None and lang.code != kwargs['language_code']:
                 kwargs["language_code"] = lang.code
-                if kwargs.get("filename", None) is None:
-                    return redirect(
-                        reverse(
-                            'pootle-tp-browse',
-                            kwargs=kwargs))
-                else:
-                    return redirect(
-                        reverse(
-                            'pootle-tp-store-browse',
-                            kwargs=kwargs))
+                return redirect(resolve(request.path).view_name, **kwargs)
 
             elif kwargs["dir_path"] or kwargs.get("filename", None):
                 try:
-                    tp = TranslationProject.objects \
+                    TranslationProject.objects \
                         .select_related('language').get(
                             project__code=kwargs["project_code"],
                             language__code=kwargs["language_code"]
@@ -119,6 +111,7 @@ def redirect_to_tp_on_404(f):
                     return response
             raise e
         return f(self, request, *args, **kwargs)
+
     return method_wrapper
 
 
