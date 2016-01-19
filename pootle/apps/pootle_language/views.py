@@ -93,6 +93,7 @@ class LanguageTranslateView(LanguageMixin, PootleTranslateView):
 
 
 class LanguageExportView(LanguageMixin, PootleExportView):
+    page_path = "pootle-language-export"
     source_language = "en"
 
 
