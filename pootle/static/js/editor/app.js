@@ -48,7 +48,7 @@ import score from '../score';
 import search from '../search';
 import utils from '../utils';
 import {
-  decodeEntities, escapeUnsafeRegexSymbols, makeRegexForMultipleWords,
+  decodeEntities, escapeUnsafeRegexSymbols, getAreaId, makeRegexForMultipleWords,
 } from './utils';
 
 import ReactEditor from './index';
@@ -1247,7 +1247,7 @@ PTL.editor = {
     const data = {};
     const valueState = ReactEditor.state.values;
     for (let i = 0; i < valueState.length; i++) {
-      data[`id_target_f_${i}`] = valueState[i];
+      data[getAreaId(i)] = valueState[i];
     }
     return data;
   },
@@ -2367,7 +2367,7 @@ PTL.editor = {
     // Update target textareas
     if (data.newtargets !== undefined) {
       $.each(data.newtargets, (i, target) => {
-        $(`#id_target_f_${i}`).val(target).focus();
+        $(`#${getAreaId(i)}`).val(target).focus();
       });
     }
 

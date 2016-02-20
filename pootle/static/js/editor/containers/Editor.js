@@ -9,6 +9,7 @@
 import React from 'react';
 
 import EditorTextarea from '../components/EditorTextarea';
+import { getAreaId } from '../utils';
 
 
 const Editor = React.createClass({
@@ -51,6 +52,7 @@ const Editor = React.createClass({
       }
       editorTextareas.push(
         <EditorTextarea
+          id={getAreaId(i)}
           initialValue={this.props.initialValues[i]}
           key={i}
           onChange={(value) => this.props.onChange(i, value)}
