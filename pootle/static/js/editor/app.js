@@ -2441,16 +2441,15 @@ PTL.editor = {
       return false;
     }
 
-    const area = document.querySelector('.js-translation-area');
+    ReactEditor.setProps({
+      values: this.updateFocusedValue(decodeEntities(translation)),
+    });
 
-    area.value = decodeEntities(translation);
-    autosize.update(area);
+    const area = this.focused;
 
     // Save a copy of the resulting text in the DOM for further
     // similarity comparisons
     area.dataset.translationAidMt = translation;
-
-    area.dispatchEvent((new Event('input')));
     area.focus();
 
     this.goFuzzy();
