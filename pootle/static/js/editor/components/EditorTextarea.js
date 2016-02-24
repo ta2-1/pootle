@@ -9,7 +9,19 @@
 import cx from 'classnames';
 import React from 'react';
 
-import { applyFontFilter, unapplyFontFilter } from '../utils';
+import { applyFontFilter, unapplyFontFilter, isNewlineSymbol } from '../utils';
+
+
+function shouldEventOverwriteSelection(e) {
+  const { key } = e;
+  return (
+    !e.getModifierState(key) &&
+    !e.altKey && !e.ctrlKey && !e.shiftKey && !e.metaKey &&
+    key !== 'Tab' &&
+    key.search(/^Arrow[a-zA-Z]+$/) === -1 &&
+    key.search(/^F[0-9]{1,2}$/) === -1
+  );
+}
 
 
 const EditorTextarea = React.createClass({
@@ -64,6 +76,40 @@ const EditorTextarea = React.createClass({
     this.updateValue(cleanValue);
   },
 
+  handleKeyDown(e) {
+    const { selectionStart } = e.target;
+    const { selectionEnd } = e.target;
+    const { value } = e.target;
+
+    if (selectionStart === selectionEnd) {
+      if (e.key === 'Backspace' && isNewlineSymbol(value[selectionStart - 1])) {
+        e.preventDefault();
+        this.updateValueWithSelection(value, selectionStart, selectionEnd + 1, e.key);
+      } else if (e.key === 'Delete' && isNewlineSymbol(value[selectionEnd])) {
+        e.preventDefault();
+        this.updateValueWithSelection(value, selectionStart + 1, selectionEnd + 2, e.key);
+      }
+    } else {
+      const start = Math.min(selectionStart, selectionEnd);
+      const end = Math.max(selectionStart, selectionEnd);
+
+      if (shouldEventOverwriteSelection(e) && isNewlineSymbol(value[end - 1])) {
+        e.preventDefault();
+        this.updateValueWithSelection(value, start, end + 1, e.key);
+      }
+    }
+  },
+
+  updateValueWithSelection(value, start, end, keyPressed) {
+    const replacementChar = (
+      (keyPressed === 'Delete' || keyPressed === 'Backspace') ? '' : keyPressed
+    );
+    const newValue = (value.slice(0, start) + replacementChar +
+                      value.slice(end, value.length));
+    const cleanValue = unapplyFontFilter(newValue, this.getMode());
+    this.updateValue(cleanValue);
+  },
+
   render() {
     const transformedValue = applyFontFilter(this.state.value, this.getMode());
     const editorWrapperClasses = cx('editor-area-wrapper js-editor-area-wrapper', {
@@ -76,6 +122,7 @@ const EditorTextarea = React.createClass({
           id={this.props.id}
           initialValue={applyFontFilter(this.props.initialValue, this.getMode())}
           onChange={this.handleChange}
+          onKeyDown={this.handleKeyDown}
           style={this.props.style}
           value={transformedValue}
         />
