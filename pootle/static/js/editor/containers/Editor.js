@@ -9,12 +9,14 @@
 import React from 'react';
 
 import EditorTextarea from '../components/EditorTextarea';
+import Textarea from '../components/Textarea';
 import { getAreaId } from '../utils';
 
 
 const Editor = React.createClass({
 
   propTypes: {
+    textareaComponent: React.PropTypes.func,
     initialValues: React.PropTypes.array,
     isDisabled: React.PropTypes.bool,
     isRawMode: React.PropTypes.bool,
@@ -31,6 +33,12 @@ const Editor = React.createClass({
   childContextTypes: {
     locale: React.PropTypes.string,
     localeDir: React.PropTypes.string,
+  },
+
+  getDefaultProps() {
+    return {
+      textareaComponent: Textarea,
+    };
   },
 
   getChildContext() {
@@ -58,6 +66,7 @@ const Editor = React.createClass({
       }
       editorTextareas.push(
         <EditorTextarea
+          textareaComponent={this.props.textareaComponent}
           id={getAreaId(i)}
           initialValue={this.props.initialValues[i]}
           key={i}
