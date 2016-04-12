@@ -46,7 +46,7 @@ from .decorators import get_unit_context
 from .fields import to_python
 from .forms import (
     highlight_whitespace, unit_comment_form_factory,
-    unit_form_factory, UnitSearchForm)
+    unit_form_factory, UnitSearchForm, SuggestionFeedbackForm)
 from .models import Unit
 from .templatetags.store_tags import (highlight_diffs, pluralize_source,
                                       pluralize_target)
@@ -694,6 +694,9 @@ def reject_suggestion(request, unit, suggid):
         raise PermissionDenied(_('Insufficient rights to access review mode.'))
 
     unit.reject_suggestion(sugg, request.translation_project, request.user)
+    #sf_form = SuggestionFeedbackForm(request.body)
+    #if sf_form.is_valid() and sf_form.clean_data["comment"] != "":
+    #    sf_form.save()
 
     json['user_score'] = request.user.public_score
 
@@ -713,6 +716,9 @@ def accept_suggestion(request, unit, suggid):
         raise Http404
 
     unit.accept_suggestion(suggestion, request.translation_project, request.user)
+    sf_form = SuggestionFeedbackForm(request.POST)
+    if sf_form.is_valid() and sf_form.cleaned_data["comment"] != "":
+        sf_form.save()
 
     json['user_score'] = request.user.public_score
     json['newtargets'] = [highlight_whitespace(target)

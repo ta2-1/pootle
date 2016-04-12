@@ -291,6 +291,11 @@ class UnitManager(models.Manager):
                 store__pootle_path__regex=pootle_path)
 
 
+class SuggestionFeedback(models.Model):
+    suggestion = models.ForeignKey(Suggestion, null=False)
+    comment = models.TextField(null=True)
+
+
 class Unit(models.Model, base.TranslationUnit):
     store = models.ForeignKey("pootle_store.Store", db_index=True)
     index = models.IntegerField(db_index=True)

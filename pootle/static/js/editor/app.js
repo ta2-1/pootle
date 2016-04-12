@@ -2182,7 +2182,8 @@ PTL.editor = {
 
   /* Rejects a suggestion */
   rejectSuggestion(suggId) {
-    UnitAPI.rejectSuggestion(this.units.getCurrent().id, suggId)
+    const body = {comment: "Your suggestion has been rejected!"};
+    UnitAPI.rejectSuggestion(this.units.getCurrent().id, suggId, body)
       .then(
         (data) => this.processRejectSuggestion(data, suggId),
         this.error
@@ -2207,7 +2208,8 @@ PTL.editor = {
 
   /* Accepts a suggestion */
   acceptSuggestion(suggId, { skipToNext = false } = {}) {
-    UnitAPI.acceptSuggestion(this.units.getCurrent().id, suggId)
+    const body = {suggestion: suggId, comment: "Your suggestion has been accepted!"};
+    UnitAPI.acceptSuggestion(this.units.getCurrent().id, suggId, body)
       .then(
         (data) => this.processAcceptSuggestion(data, suggId, skipToNext),
         this.error

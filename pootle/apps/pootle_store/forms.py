@@ -38,7 +38,7 @@ from .fields import to_db
 from .form_fields import (
     CategoryChoiceField, ISODateTimeField, MultipleArgsField,
     CommaSeparatedCheckboxSelectMultiple)
-from .models import Unit
+from .models import SuggestionFeedback, Unit
 from .util import FUZZY, OBSOLETE, TRANSLATED, UNTRANSLATED
 
 
@@ -557,3 +557,10 @@ class UnitExportForm(UnitSearchForm):
 
     def clean_count(self):
         return EXPORT_VIEW_QUERY_LIMIT
+
+
+class SuggestionFeedbackForm(forms.ModelForm):
+
+    class Meta(object):
+        model = SuggestionFeedback
+        fields = ["suggestion", "comment"]
