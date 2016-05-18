@@ -121,9 +121,9 @@ export function highlightRW(text) {
             applyFontFilter(
               text
             )
-          )
-        )
-      )
+          , 'js-editor-copytext')
+        , 'js-editor-copytext')
+      , 'js-editor-copytext')
     )
   );
 }
