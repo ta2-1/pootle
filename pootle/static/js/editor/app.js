@@ -705,7 +705,7 @@ PTL.editor = {
       start = $target.caret().start + text.length;
     }
 
-    ReactEditor.setProps({ values: newValues });
+    ReactEditor.setProps({ overrideValues: newValues });
     $target.caret(start, start);
   },
 
@@ -713,7 +713,7 @@ PTL.editor = {
   /* Copies source text(s) into the target textarea(s)*/
   copyOriginal(languageCode) {
     const sources = this.units.getCurrent().get('sources')[languageCode];
-    ReactEditor.setProps({ values: sources.slice() });
+    ReactEditor.setProps({ overrideValues: sources.slice() });
 
     this.goFuzzy();
 
@@ -2367,7 +2367,7 @@ PTL.editor = {
 
   processAcceptSuggestion(data, suggId, skipToNext) {
     if (data.newtargets !== undefined) {
-      ReactEditor.setProps({ values: data.newtargets.slice() });
+      ReactEditor.setProps({ overrideValues: data.newtargets.slice() });
     }
     this.focused.focus();
     this.updateUnitDefaultProperties();
@@ -2441,7 +2441,7 @@ PTL.editor = {
     }
 
     ReactEditor.setProps({
-      values: this.updateFocusedValue(decodeEntities(translation)),
+      overrideValues: this.updateFocusedValue(decodeEntities(translation)),
     });
 
     const area = this.focused;
