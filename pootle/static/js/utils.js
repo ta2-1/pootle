@@ -97,7 +97,22 @@ export function strCmp(a, b) {
 }
 
 
-export function fancyHl(text) {
+export function highlightRO(text) {
+  return (
+    nl2br(
+      highlightEscapes(
+        highlightHtml(
+          applyFontFilter(
+            text
+          )
+        )
+      )
+    )
+  );
+}
+
+
+export function highlightRW(text) {
   return (
     nl2br(
       highlightPunctuation(
@@ -114,13 +129,23 @@ export function fancyHl(text) {
 }
 
 
-export function fancyHlNodes(selector) {
+function highlightNodes(selector, highlightFn) {
   [...document.querySelectorAll(selector)].forEach(
     (translationTextNode) => {
       // eslint-disable-next-line no-param-reassign
-      translationTextNode.innerHTML = fancyHl(translationTextNode.textContent);
+      translationTextNode.innerHTML = highlightFn(translationTextNode.textContent);
     }
   );
+}
+
+
+export function highlightRONodes(selector) {
+  return highlightNodes(selector, highlightRO);
+}
+
+
+export function highlightRWNodes(selector) {
+  return highlightNodes(selector, highlightRW);
 }
 
 
@@ -205,8 +230,10 @@ export function blinkClass($elem, className, n, delay) {
 export default {
   blinkClass,
   executeFunctionByName,
-  fancyHl,
-  fancyHlNodes,
+  highlightRO,
+  highlightRW,
+  highlightRONodes,
+  highlightRWNodes,
   getHash,
   getParsedHash,
   makeSelectableInput,
