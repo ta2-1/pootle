@@ -11,7 +11,8 @@ import $ from 'jquery';
 import 'jquery-select2';
 
 import {
-  applyFontFilter, highlightPunctuation, highlightEscapes, highlightHtml, nl2br,
+  applyFontFilter, highlightPunctuation, highlightEscapes, highlightHtml,
+  highlightSymbols, nl2br,
 } from './editor/utils';
 
 
@@ -114,17 +115,19 @@ export function highlightRO(text) {
 
 export function highlightRW(text) {
   return (
-    nl2br(
-      highlightPunctuation(
-        highlightEscapes(
-          highlightHtml(
-            applyFontFilter(
-              text
-            )
+    highlightSymbols(
+      nl2br(
+        highlightPunctuation(
+          highlightEscapes(
+            highlightHtml(
+              applyFontFilter(
+                text
+              )
+            , 'js-editor-copytext')
           , 'js-editor-copytext')
         , 'js-editor-copytext')
-      , 'js-editor-copytext')
-    )
+      )
+    , 'js-editor-copytext')
   );
 }
 
