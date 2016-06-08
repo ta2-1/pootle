@@ -99,6 +99,7 @@ const Editor = React.createClass({
 
     for (let i = 0; i < this.props.targetNplurals; i++) {
       const extraProps = {
+        autoFocus: i === 0,
         isDisabled: this.props.isDisabled,
         textareaComponent: this.props.textareaComponent,
       };
