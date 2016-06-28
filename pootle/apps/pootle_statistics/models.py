@@ -393,6 +393,9 @@ class ScoreLog(models.Model):
     score_delta = models.FloatField(null=False)
     action_code = models.IntegerField(null=False)
     submission = models.ForeignKey(Submission, null=False)
+
+    # the weighted translated wordcount if the action is counted
+    # as translation action, null - otherwise
     translated_wordcount = models.PositiveIntegerField(null=True)
 
     objects = ScoreLogManager()
