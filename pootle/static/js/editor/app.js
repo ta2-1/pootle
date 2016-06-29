@@ -736,7 +736,7 @@ PTL.editor = {
     ].indexOf(this.focused);
 
     let newValue = value;
-    if (!overwrite) {
+    if (!overwrite && newValues[targetIndex] !== '') {
       const { selectionStart } = this.focused;
       const { selectionEnd } = this.focused;
       const areaValue = this.focused.value;
