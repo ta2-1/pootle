@@ -62,6 +62,18 @@ def get_supported_formats():
     except ImportError:
         pass
 
+    try:
+        from translate.storage.properties import propfile
+        formats.append(('properties', _('Java .properties'), propfile, 'monolingual'))
+    except ImportError:
+        pass
+
+    try:
+        from translate.storage.l20n import l20nfile
+        formats.append(('l20n', _('Mozilla .l20n'), l20nfile, 'monolingual'))
+    except ImportError:
+        pass
+
     return formats
 
 supported_formats = get_supported_formats()
@@ -83,3 +95,8 @@ def get_factory_classes():
     return classes
 
 factory_classes = get_factory_classes()
+
+
+def get_filetype_kind(filetype):
+    kinds = dict(((format[0], format[3]) for format in supported_formats))
+    return kinds.get(filetype, None)
