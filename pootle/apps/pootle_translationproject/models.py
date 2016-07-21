@@ -19,13 +19,15 @@ from django.dispatch import receiver
 from django.utils.functional import cached_property
 
 from pootle.core.mixins import CachedMethods, CachedTreeItem
-from pootle.core.url_helpers import get_editor_filter, split_pootle_path
+from pootle.core.url_helpers import (get_editor_filter, split_pootle_path,
+                                     to_tp_relative_path)
 from pootle_app.models.directory import Directory
 from pootle_app.project_tree import (does_not_exist, init_store_from_template,
                                      translation_project_dir_exists)
 from pootle_language.models import Language
 from pootle_misc.checks import excluded_filters
 from pootle_project.models import Project
+from pootle_store.filetypes import get_filetype_kind
 from pootle_store.models import PARSED, Store
 from pootle_store.util import absolute_real_path, relative_real_path
 from staticpages.models import StaticPage
@@ -340,24 +342,58 @@ class TranslationProject(models.Model, CachedTreeItem):
     def update_from_disk(self, force=False, overwrite=False):
         """Update all stores to reflect state on disk."""
         changed = False
+        filetype_kind = get_filetype_kind(self.project.localfiletype)
+        is_monolingual = filetype_kind == "monolingual"
 
         logging.info(u"Scanning for new files in %s", self)
         # Create new, make obsolete in-DB stores to reflect state on disk
         self.scan_files()
+
+        if is_monolingual:
+            template_tp = self.project.get_template_translationproject()
+            template_stores = template_tp.stores.live().exclude(file="")
 
         stores = self.stores.live().select_related('parent').exclude(file='')
         # Update store content from disk store
         for store in stores.iterator():
             if not store.file:
                 continue
+
             disk_mtime = store.get_file_mtime()
+            store_relative_path = to_tp_relative_path(store.pootle_path)
+
             if not force and disk_mtime == store.file_mtime:
                 # The file on disk wasn't changed since the last sync
                 logging.debug(u"File didn't change since last sync, "
                               u"skipping %s", store.pootle_path)
                 continue
 
-            changed = store.update_from_disk(overwrite=overwrite) or changed
+            if is_monolingual and not self.is_template_project:
+                matched_template_store = None
+                for template_store in template_stores:
+                    template_store_relative_path = to_tp_relative_path(
+                        template_store.pootle_path)
+                    if store_relative_path == template_store_relative_path:
+                        matched_template_store = template_store.file.store
+                        continue
+
+                if matched_template_store:
+                    merged_store = merge(store.file.store,
+                                         matched_template_store,
+                                         self.project.localfiletype)
+                    if overwrite:
+                        store_revision = store.get_max_unit_revision()
+                    else:
+                        store_revision = store.last_sync_revision or 0
+                    changed = store.update(
+                        merged_store,
+                        store_revision=store_revision
+                    ) or changed
+                else:
+                    logging.warning(u"File %s doesn't have template",
+                                    store.pootle_path)
+            else:
+                changed = store.update_from_disk(overwrite=overwrite) or changed
 
         # If this TP has no stores, cache should be updated forcibly.
         if not changed and stores.count() == 0:
@@ -507,3 +543,16 @@ def scan_projects(sender, instance, created=False, raw=False, **kwargs):
         tp = create_translation_project(instance, project)
         if tp is not None:
             tp.update_from_disk()
+
+
+def merge(store, template_store, filetype):
+    # TODO: support more formats
+    from translate.convert.prop2po import prop2po
+    from translate.convert.l20n2po import l20n2po
+
+    convert = {
+        'properties': prop2po,
+        'l20n': l20n2po
+    }.get(filetype)
+
+    return convert().mergestore(template_store, store)

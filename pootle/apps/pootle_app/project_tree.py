@@ -17,6 +17,7 @@ from pootle.core.log import STORE_RESURRECTED, store_log
 from pootle.core.utils.timezone import datetime_min
 from pootle_app.models.directory import Directory
 from pootle_language.models import Language
+from pootle_store.filetypes import get_filetype_kind
 from pootle_store.models import Store
 from pootle_store.util import absolute_real_path, relative_real_path
 
@@ -334,8 +335,14 @@ def init_store_from_template(translation_project, template_store):
     if not os.path.exists(target_dir):
         os.makedirs(target_dir)
 
-    output_file = template_store.file.store
+    output_file = template_store.file.store.__class__.parsefile(
+        template_store.file.path)
     output_file.settargetlanguage(translation_project.language.code)
+    filetype_kind = get_filetype_kind(
+        translation_project.project.localfiletype)
+    if filetype_kind == 'monolingual':
+        for unit in output_file.units:
+            unit.source = ''
     output_file.savefile(target_path)
 
 
