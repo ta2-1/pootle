@@ -14,6 +14,8 @@ import ReactDOM from 'react-dom';
 import TimeSince from 'components/TimeSince';
 import ReactRenderer from 'utils/ReactRenderer';
 
+PTL.l20n = require('l20n');
+
 // jQuery plugins
 import 'jquery-bidi';
 import 'jquery-caret';
