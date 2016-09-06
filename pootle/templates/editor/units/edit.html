@@ -210,7 +210,6 @@
                 isDisabled: {{ form.target_f.field.widget.attrs.disabled|yesno:'true,false' }},
                 currentLocaleCode: '{{ language.code }}',
                 currentLocaleDir: '{{ language.direction }}',
-                sourceString: {{ unit.source_f|to_js }},
                 targetNplurals: {{ target_nplurals }},
               });
             </script>
