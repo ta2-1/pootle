@@ -325,10 +325,7 @@ class Submission(models.Model):
 
         scorelogs_created = []
         for score in ScoreLog.get_scorelogs(submission=self):
-            if 'action_code' in score and score['user'] is not None:
-                if not isinstance(score["user"], models.Model):
-                    score["user_id"] = score["user"]
-                    del score["user"]
+            if 'action_code' in score and score['user_id'] is not None:
                 scorelogs_created.append(ScoreLog(**score))
         if scorelogs_created:
             self.scorelog_set.add(*scorelogs_created)
@@ -425,14 +422,14 @@ class ScoreLog(models.Model):
             reviewer = translator
 
         previous_translator_score = score_dict.copy()
-        previous_translator_score['user'] = translator
+        previous_translator_score['user_id'] = translator
         previous_reviewer_score = score_dict.copy()
-        previous_reviewer_score['user'] = reviewer
+        previous_reviewer_score['user_id'] = reviewer
         submitter_score = score_dict.copy()
-        submitter_score['user'] = submission.submitter
+        submitter_score['user_id'] = submission.submitter_id
         suggester_score = score_dict.copy()
         if submission.suggestion is not None:
-            suggester_score['user'] = submission.suggestion.user
+            suggester_score['user_id'] = submission.suggestion.user_id
 
         if (submission.field == SubmissionFields.TARGET and
             submission.type in SubmissionTypes.EDIT_TYPES):
@@ -505,7 +502,7 @@ class ScoreLog(models.Model):
         super(ScoreLog, self).save(*args, **kwargs)
 
         User = get_user_model()
-        User.objects.filter(id=self.user.id).update(
+        User.objects.filter(id=self.user_id).update(
             score=F('score') + self.score_delta
         )
         self.log()
