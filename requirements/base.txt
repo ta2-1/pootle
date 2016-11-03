@@ -31,6 +31,8 @@ scandir==1.4
 
 # Translate Toolkit
 # Note: also adjust pootle/checks::TTK_MINIMUM_REQUIRED_VERSION
-translate-toolkit==2.0.0b7
+#translate-toolkit==2.0.0b7
 # If you want to use Translate Toolkit 'master'
-#-e git://github.com/translate/translate.git#egg=translate-toolkit
+-e git+https://github.com/ta2-1/translate@l20n_sections#egg=translate-toolkit-2.0.0b8
+
+-e git+https://github.com/ta2-1/mozilla-pootle@temp-l20n-po#egg=mozilla-pootle-0.0.1
