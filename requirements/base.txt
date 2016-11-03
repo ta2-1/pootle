@@ -33,3 +33,5 @@ scandir==1.3
 translate-toolkit==2.0.0b7
 # If you want to use Translate Toolkit 'master'
 #-e git://github.com/translate/translate.git#egg=translate-toolkit
+
+-e git://github.com/ta2-1/mozilla-pootle@l20n#egg=mozilla_pootle
