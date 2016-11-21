@@ -13,16 +13,22 @@ import React from 'react';
 const AutosizeTextarea = React.createClass({
 
   componentDidMount() {
-    autosize(this.refs.textarea);
+    if (!(this.refs.textarea.disabled)) {
+       autosize(this.refs.textarea);
+    }
   },
 
   componentDidUpdate() {
     // Using setTimeout() for being able to support uncontrolled components
-    setTimeout(() => autosize.update(this.refs.textarea), 0);
+    if (!(this.refs.textarea.disabled)) {
+      setTimeout(() => autosize.update(this.refs.textarea), 0);
+    }
   },
 
   componentWillUnmount() {
-    autosize.destroy(this.refs.textarea);
+    if (!(this.refs.textarea.disabled)) {
+      autosize.destroy(this.refs.textarea);
+    }
   },
 
   render() {
