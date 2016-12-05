@@ -37,7 +37,7 @@ def _test_browse_view(language, request, response, kwargs):
     cookie_data = json.loads(
         unquote(response.cookies[SIDEBAR_COOKIE_NAME].value))
     assert cookie_data["foo"] == "bar"
-    assert "announcements_%s" % language.code in cookie_data
+    assert "announcements_%s" % language.code in request.session
     ctx = response.context
     user_tps = language.get_children_for_user(request.user)
     stats = language.data_tool.get_stats(user=request.user)
