@@ -8,9 +8,8 @@
 
 import React from 'react';
 
-import { t } from 'utils/i18n';
-
 import EditingArea from '../components/EditingArea';
+import EditorPluralFormHeader from '../components/EditorPluralFormHeader';
 import RawFontTextarea from '../components/RawFontTextarea';
 import { getAreaId } from '../utils';
 
@@ -27,6 +26,9 @@ const Editor = React.createClass({
     style: React.PropTypes.object,
     targetNplurals: React.PropTypes.number.isRequired,
     textareaComponent: React.PropTypes.func,
+    textareaHeaderActionCallback: React.PropTypes.func,
+    textareaHeaderComponent: React.PropTypes.func,
+    getTextareaHeaderProps: React.PropTypes.func,
     values: React.PropTypes.array,
   },
 
@@ -34,15 +36,8 @@ const Editor = React.createClass({
     return {
       initialValues: [],
       textareaComponent: RawFontTextarea,
+      textareaHeaderComponent: EditorPluralFormHeader,
     };
-  },
-
-  getPluralFormName(index) {
-    if (this.props.getPluralFormName !== undefined) {
-      return this.props.getPluralFormName(index);
-    }
-
-    return t('Plural form %(index)s', { index });
   },
 
   render() {
@@ -59,11 +54,13 @@ const Editor = React.createClass({
           isDisabled={this.props.isDisabled}
           key={i}
         >
-          {(this.props.targetNplurals > 1) &&
-            <div className="subheader">
-              { this.getPluralFormName(i) }
-            </div>
-          }
+          <this.props.textareaHeaderComponent
+            targetNplurals={this.props.targetNplurals}
+            index={i}
+            actionCallback={this.props.textareaHeaderActionCallback}
+            getTitle={this.props.getPluralFormName}
+            getProps={this.props.getTextareaHeaderProps}
+          />
           <this.props.textareaComponent
             autoFocus={i === 0}
             id={getAreaId(i)}
