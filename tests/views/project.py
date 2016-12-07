@@ -93,9 +93,10 @@ def _test_translate_view(project, request, response, kwargs, settings):
 
 
 def _test_browse_view(project, request, response, kwargs):
-    cookie_data = json.loads(
-        unquote(response.cookies[SIDEBAR_COOKIE_NAME].value))
-    assert cookie_data["foo"] == "bar"
+    if SIDEBAR_COOKIE_NAME in response.cookies:
+        cookie_data = json.loads(
+            unquote(response.cookies[SIDEBAR_COOKIE_NAME].value))
+        assert cookie_data["foo"] == "bar"
     assert "announcements_projects_%s" % project.code in request.session
     ctx = response.context
     kwargs["project_code"] = project.code

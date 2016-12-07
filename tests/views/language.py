@@ -34,9 +34,10 @@ from pootle_misc.forms import make_search_form
 def _test_browse_view(language, request, response, kwargs):
     assert (
         response.cookies["pootle-language"].value == language.code)
-    cookie_data = json.loads(
-        unquote(response.cookies[SIDEBAR_COOKIE_NAME].value))
-    assert cookie_data["foo"] == "bar"
+    if SIDEBAR_COOKIE_NAME in response.cookies:
+        cookie_data = json.loads(
+            unquote(response.cookies[SIDEBAR_COOKIE_NAME].value))
+        assert cookie_data["foo"] == "bar"
     assert "announcements_%s" % language.code in request.session
     ctx = response.context
     user_tps = language.get_children_for_user(request.user)
