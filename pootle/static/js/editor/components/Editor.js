@@ -17,7 +17,6 @@ import { getAreaId } from '../utils';
 const Editor = React.createClass({
 
   propTypes: {
-    getPluralFormName: React.PropTypes.func,
     initialValues: React.PropTypes.array,
     isDisabled: React.PropTypes.bool,
     isRawMode: React.PropTypes.bool,
@@ -37,6 +36,8 @@ const Editor = React.createClass({
       initialValues: [],
       textareaComponent: RawFontTextarea,
       textareaHeaderComponent: EditorPluralFormHeader,
+      getTextareaHeaderProps: (i) => null,
+      textareaHeaderActionCallback: (i, action) => null,
     };
   },
 
@@ -48,18 +49,16 @@ const Editor = React.createClass({
       if (this.props.isRawMode !== undefined) {
         extraProps.isRawMode = this.props.isRawMode;
       }
-
       editingAreas.push(
         <EditingArea
           isDisabled={this.props.isDisabled}
           key={i}
         >
           <this.props.textareaHeaderComponent
-            targetNplurals={this.props.targetNplurals}
+            count={this.props.targetNplurals}
             index={i}
-            actionCallback={this.props.textareaHeaderActionCallback}
-            getTitle={this.props.getPluralFormName}
-            getProps={this.props.getTextareaHeaderProps}
+            actionCallback={(action) => this.props.textareaHeaderActionCallback(i, action)}
+            getProps={() => this.props.getTextareaHeaderProps(i)}
           />
           <this.props.textareaComponent
             autoFocus={i === 0}
