@@ -39,10 +39,10 @@ def _test_browse_view(tp, request, response, kwargs):
         cookie_data = json.loads(
             unquote(response.cookies[SIDEBAR_COOKIE_NAME].value))
         assert cookie_data["foo"] == "bar"
-    assert "announcements_projects_%s" % tp.project.code in request.session
-    assert "announcements_%s" % tp.language.code in request.session
+    assert "announcements/projects/%s" % tp.project.code in request.session
+    assert "announcements/%s" % tp.language.code in request.session
     assert (
-        "announcements_%s_%s"
+        "announcements/%s/%s"
         % (tp.language.code, tp.project.code)
         in request.session)
     ctx = response.context
