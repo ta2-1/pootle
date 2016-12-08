@@ -51,14 +51,11 @@ const ViewUnit = React.createClass({
     };
   },
 
-  getLabel(index) {
-    if (this.props.getLabel) {
-      return this.props.getLabel(index);
-    };
-    return `${index}`;
-  },
-
   createValue(value, index) {
+    if (value === null) {
+      return null;
+    }
+
     return (
       <div
         className="translation-text"
@@ -78,6 +75,10 @@ const ViewUnit = React.createClass({
   },
 
   render() {
+    if (this.props.values.every(val => val === '')) {
+      return null;
+    }
+
     const classNames = cx(`translate-${this.props.type}`, 'translate-view', {
       'fuzzy-unit': this.props.isFuzzy,
     });
