@@ -35,6 +35,7 @@ const UnitSource = React.createClass({
     sourceLocaleCode: React.PropTypes.string,
     sourceLocaleDir: React.PropTypes.string,
     labelComponent: React.PropTypes.func,
+    getLabel: React.PropTypes.func,
     innerComponent: React.PropTypes.func,
   },
 
@@ -55,6 +56,7 @@ const UnitSource = React.createClass({
         <this.props.labelComponent
           index={index}
           hasPlurals={this.props.hasPlurals}
+          getLabel={this.props.getLabel}
         />
         <div
           className="translation-text js-translation-text"
