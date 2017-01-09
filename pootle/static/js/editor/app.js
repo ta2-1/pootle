@@ -268,6 +268,8 @@ PTL.editor = {
     $('#editor').on('click', '.js-show-ctx', () => this.showContext());
     $('#editor').on('click', '.js-hide-ctx', () => this.hideContext());
 
+    window.onscroll = () => this.onScroll();
+
     /* Commenting */
     $('#editor').on('click', '.js-editor-comment', (e) => {
       e.preventDefault();
@@ -627,6 +629,12 @@ PTL.editor = {
     return true;
   },
 
+  onScroll() {
+    const $toolbar = $('#toolbar');
+    const $actions = $('#actions');
+    const shouldFixPosition = $actions.offset().top + $actions.innerHeight() < document.body.scrollTop;
+    $toolbar.toggleClass('fixed', shouldFixPosition);
+  },
 
   /*
    * Text utils

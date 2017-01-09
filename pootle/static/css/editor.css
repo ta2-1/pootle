@@ -43,6 +43,23 @@ textarea#view_unit
     top: -35px;
 }
 
+#toolbar.fixed
+{
+    position: fixed;
+    z-index: 100; /* show below the main toolbar, to hide the shadow top edge */
+
+    background-color: #eee;
+    border-color: #d9d9d9;
+    border-width: medium 1px 1px;
+    border-style: none solid solid;
+
+    padding: 10px 8px 5px;
+    top: -6px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    border-radius: 5px;
+    right: 1.3em;
+}
+
 /* When browser size is 950px or less, show navigation toolbar below the main toolbar */
 @media screen and (max-width: 950px)
 {
@@ -59,6 +76,7 @@ textarea#view_unit
         top: -11px;
         box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
         border-radius: 5px;
+        right: 1.3em;
     }
 }
 
