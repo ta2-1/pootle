@@ -895,6 +895,17 @@ class Unit(AbstractUnit):
         }
 
 
+class UnitFork(models.Model):
+    unit = models.ForeignKey(
+        Unit, related_name='source_unit', on_delete=models.CASCADE)
+    unit_revision = models.IntegerField(null=False, default=0, db_index=True,
+                                        blank=True)
+    clone = models.ForeignKey(
+        Unit, related_name='clone', on_delete=models.CASCADE)
+    creation_time = models.DateTimeField(auto_now_add=True, db_index=True,
+                                         editable=False)
+
+
 # # # # # # # # # # #  Store # # # # # # # # # # # # # #
 
 

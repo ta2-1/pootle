@@ -11,12 +11,13 @@ import shutil
 
 from django.contrib.auth import get_user_model
 
+from pootle.core.contextmanagers import update_data_after
 from pootle.core.models import Revision
 from pootle.core.signals import update_data
 from pootle_statistics.models import SubmissionTypes
 from pootle_store.constants import SOURCE_WINS
 from pootle_store.diff import StoreDiff
-from pootle_store.models import QualityCheck
+from pootle_store.models import QualityCheck, UnitFork
 
 
 User = get_user_model()
@@ -111,10 +112,20 @@ class TPTool(object):
         cloned = target_dir.child_stores.create(
             name=store.name,
             translation_project=target_dir.translation_project)
-        cloned.update(cloned.deserialize(store.serialize()))
         cloned.state = store.state
         cloned.filetype = store.filetype
         cloned.save()
+
+        unit_links = []
+        with update_data_after(self):
+            for source_unit in store.units.iterator():
+                cloned_unit = cloned.addunit(source_unit,
+                                             index=source_unit.index)
+                unit_links.append(UnitFork(unit=source_unit,
+                                           unit_revision=source_unit.revision,
+                                           cloned=cloned_unit))
+        UnitFork.objects.bulk_create(unit_links)
+
         self.update_muted_checks(store, cloned)
         return cloned
 
