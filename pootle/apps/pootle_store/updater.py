@@ -6,6 +6,7 @@
 # or later license. See the LICENSE file for a copy of the license and the
 # AUTHORS file for copyright and authorship information.
 
+import io
 import logging
 
 from django.contrib.auth import get_user_model
@@ -350,6 +351,14 @@ class StoreUpdater(object):
         changes['updated'], changes['suggested'] = self.update_units(update)
         return changes
 
+    def merge(self, template_store, file_store):
+        io_store = io.BytesIO(template_store.serialize())
+        store = file_store.__class__(io_store)
+        for unit in store.units:
+            translation = file_store.findid(unit.getid())
+            unit.target = translation.source
+        return store
+
     def update_from_disk(self, overwrite=False):
         """Update DB with units from the disk Store.
 
@@ -365,9 +374,20 @@ class StoreUpdater(object):
         else:
             store_revision = self.target_store.last_sync_revision or 0
 
+        store = self.target_store.file.store
+        import pdb; pdb.set_trace()
+        tp = self.target_store.translation_project
+        project = tp.project
+        template_tp = project.get_template_translationproject()
+        if self.target_store.filetype.monolingual and not template_tp == tp:
+            pootle_path = self.target_store.pootle_path.replace(
+                tp.pootle_path, template_tp.pootle_path)
+            template_store = template_tp.stores.get(pootle_path=pootle_path)
+            store = self.merge(template_store, self.target_store.file.store)
+
         # update the units
         update_revision, changes = self.update(
-            self.target_store.file.store,
+            store,
             store_revision=store_revision)
 
         # update file_mtime
