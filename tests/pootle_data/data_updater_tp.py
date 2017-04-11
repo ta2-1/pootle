@@ -13,6 +13,7 @@ from translate.filters.decorators import Category
 from django.db.models import Max
 
 from pootle.core.delegate import review
+from pootle.core.signals import update_checks
 from pootle_data.tp_data import TPDataTool, TPDataUpdater
 from pootle_store.constants import FUZZY, OBSOLETE, TRANSLATED, UNTRANSLATED
 from pootle_store.models import Suggestion

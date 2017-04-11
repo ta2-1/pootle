@@ -41,7 +41,7 @@ from pootle.core.log import (
 from pootle.core.mixins import CachedTreeItem
 from pootle.core.models import Revision
 from pootle.core.search import SearchBroker
-from pootle.core.signals import update_data
+from pootle.core.signals import update_checks, update_data
 from pootle.core.storage import PootleFileSystemStorage
 from pootle.core.url_helpers import (
     get_editor_filter, split_pootle_path, to_tp_relative_path)
@@ -426,7 +426,7 @@ class Unit(models.Model, base.TranslationUnit):
 
         if source_updated or target_updated:
             if not (created and self.state == UNTRANSLATED):
-                self.update_qualitychecks()
+                update_checks.send(self.__class__, instance=self)
             if self.istranslated():
                 self.update_tmserver()
 
@@ -889,7 +889,8 @@ class Unit(models.Model, base.TranslationUnit):
         else:
             self.state = UNTRANSLATED
 
-        self.update_qualitychecks(keep_false_positives=True)
+        update_checks.send(self.__class__, instance=self,
+                           keep_false_positives=True)
         self.index = self.store.max_index() + 1
         self._state_updated = True
         self._save_action = UNIT_RESURRECTED
